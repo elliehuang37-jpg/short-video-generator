@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<title>短影片爆款生成器</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f8f6;--surface:#fff;--surface2:#f3f2ef;
+  --border:#e5e4e0;--border-strong:#ccc;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888;
+  --accent:#2563eb;--accent-bg:#eff6ff;--accent-border:#bfdbfe;
+  --success:#065f46;--success-bg:#ecfdf5;--success-border:#a7f3d0;
+  --warn:#92400e;--warn-bg:#fef9ee;--warn-border:#fcd34d;
+  --radius:8px;--card-radius:12px;
+  --ig:#7b2d8b;--ig-bg:#f5e4f7;--ig-bd:#c77dce;
+  --fb:#1a4f9e;--fb-bg:#e4ecf7;--fb-bd:#5b8dd9;
+  --tk:#111;--tk-bg:#f0f0f0;--tk-bd:#999;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a18;--surface:#26262a;--surface2:#2e2e32;
+    --border:#3a3a3e;--border-strong:#555;
+    --text:#f0eeea;--text2:#b4b2a9;--text3:#666;
+    --accent-bg:#1e3a5f;--accent-border:#2563eb;
+    --success-bg:#022c22;--success-border:#065f46;
+    --warn-bg:#3d2a00;--warn-border:#92400e;
+    --ig-bg:#2d1533;--fb-bg:#0f2040;--tk-bg:#1a1a1a;--tk-bd:#555;
+    --ig:#d499e0;--fb:#7aaef5;--tk:#ddd
+  }
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:.875rem 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.hd-left{display:flex;align-items:center;gap:.5rem}
+header h1{font-size:17px;font-weight:700}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;border:1px solid}
+.badge-pwa{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+main{max-width:740px;margin:0 auto;padding:1.25rem 1rem 4rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:1.125rem;margin-bottom:.875rem}
+.stitle{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:.875rem;display:flex;align-items:center;gap:5px}
+/* platform tabs */
+.ptabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:.875rem}
+.ptab{padding:9px 6px;border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:center;font-size:12.5px;font-weight:600;color:var(--text2);background:var(--surface2);transition:all .14s;user-select:none;line-height:1.4}
+.ptab:hover{border-color:var(--border-strong)}
+.ptab span.ico{font-size:19px;display:block;margin-bottom:2px}
+.ptab.active[data-p=ig]{background:var(--ig-bg);border-color:var(--ig-bd);color:var(--ig)}
+.ptab.active[data-p=fb]{background:var(--fb-bg);border-color:var(--fb-bd);color:var(--fb)}
+.ptab.active[data-p=tk]{background:var(--tk-bg);border-color:var(--tk-bd);color:var(--tk)}
+/* algo info bar */
+.algo-bar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem .875rem;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:.875rem;display:none}
+.algo-bar.visible{display:block}
+.algo-bar strong{color:var(--text);font-size:11px;display:block;margin-bottom:3px}
+/* goal grid */
+.goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.gbtn{padding:9px 10px;border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:12.5px;color:var(--text2);background:var(--surface2);text-align:left;display:flex;align-items:center;gap:9px;transition:all .14s;user-select:none}
+.gbtn:hover{border-color:var(--border-strong)}
+.gbtn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.gbtn .gi{font-size:19px;flex-shrink:0}
+.gbtn .gn{font-weight:700;font-size:12.5px}
+.gbtn .gd{font-size:10.5px;color:var(--text3);margin-top:1px}
+.gbtn.active .gd{color:var(--accent);opacity:.75}
+/* form */
+.fg{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.875rem}
+.fg:last-child{margin-bottom:0}
+.fg label{font-size:12.5px;font-weight:600;color:var(--text2)}
+.fg label .req{color:#dc2626;margin-left:2px}
+input[type=text],input[type=password],textarea,select{
+  width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);
+  font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit;
+  transition:border-color .14s,box-shadow .14s
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+textarea{resize:vertical;min-height:76px;line-height:1.6}
+/* tone */
+.tone-row{display:flex;flex-wrap:wrap;gap:5px}
+.tpill{padding:4px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;color:var(--text2);background:var(--surface2);user-select:none;transition:all .14s}
+.tpill:hover{border-color:var(--border-strong)}
+.tpill.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:600}
+/* api */
+.api-row{display:grid;grid-template-columns:1fr 155px;gap:7px;align-items:end}
+@media(max-width:420px){.api-row{grid-template-columns:1fr}}
+.api-note{font-size:11.5px;color:var(--text3);margin-top:5px}
+/* generate button */
+.gen-btn{width:100%;padding:13px;border:none;border-radius:var(--radius);background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .14s;margin-top:.875rem;letter-spacing:.01em}
+.gen-btn:hover:not(:disabled){background:#1d4ed8;transform:translateY(-1px)}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+/* progress */
+.prog-area{display:none;margin-top:.875rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:1.125rem}
+.prog-area.show{display:block}
+.prog-bar{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin:9px 0}
+.prog-fill{height:100%;background:var(--accent);border-radius:3px;width:0;transition:width .35s}
+.prog-txt{font-size:12.5px;color:var(--text2);text-align:center}
+/* output */
+.output{display:none;margin-top:.875rem}
+.output.show{display:block}
+.ocard{background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:1.125rem;margin-bottom:.875rem}
+.ohead{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem}
+.ohead h3{font-size:14.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px}
+.copy-btn{padding:4px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text2);font-size:11.5px;cursor:pointer;font-weight:500;white-space:nowrap}
+.copy-btn:hover{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.cbox{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.8rem .95rem;font-size:13.5px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;margin-bottom:.5rem}
+.cbox:last-child{margin-bottom:0}
+.cbox strong{color:var(--accent);font-size:12px;display:block;margin-bottom:.35rem;letter-spacing:.03em;text-transform:uppercase}
+.tagrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:.625rem}
+.tag{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
+.t-hook{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-border)}
+.t-algo{background:var(--success-bg);color:var(--success);border-color:var(--success-border)}
+.t-cta{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.t-emp{background:#fce7f3;color:#9d174d;border-color:#fbcfe8}
+/* metrics */
+.mets{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:.625rem}
+@media(max-width:480px){.mets{grid-template-columns:repeat(2,1fr)}}
+.met{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem .5rem;text-align:center}
+.mv{font-size:17px;font-weight:700;color:var(--text)}
+.ml{font-size:10.5px;color:var(--text3);margin-top:2px}
+/* tips box */
+.tipbox{background:var(--success-bg);border:1px solid var(--success-border);border-radius:var(--radius);padding:.8rem .95rem;font-size:13px;color:var(--success);line-height:1.75}
+.warnbox{background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--radius);padding:.8rem .95rem;font-size:13px;color:var(--warn);line-height:1.75}
+/* platform badge */
+.pbadge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;margin-right:5px}
+.pbadge-ig{background:var(--ig-bg);color:var(--ig)}
+.pbadge-fb{background:var(--fb-bg);color:var(--fb)}
+.pbadge-tk{background:var(--tk-bg);color:var(--tk)}
+.meta-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:.625rem}
+/* export */
+.exp-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:.875rem}
+@media(max-width:420px){.exp-row{grid-template-columns:1fr 1fr}}
+.expbtn{padding:9px 6px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text2);font-size:12.5px;cursor:pointer;font-weight:500;transition:all .14s;text-align:center}
+.expbtn:hover{background:var(--surface2);color:var(--text);border-color:var(--border-strong)}
+/* divider */
+.odiv{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin:.875rem 0 .5rem;padding-left:2px}
+/* toast */
+.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:7px 18px;border-radius:var(--radius);font-size:12.5px;font-weight:600;z-index:9999;pointer-events:none;opacity:0;transition:opacity .18s;white-space:nowrap}
+.toast.show{opacity:1}
+/* regen bar */
+.regen-row{display:flex;gap:7px;margin-top:.875rem}
+.regen-btn{flex:1;padding:10px;border:1px solid var(--accent-border);border-radius:var(--radius);background:var(--accent-bg);color:var(--accent);font-size:13px;cursor:pointer;font-weight:600}
+.regen-btn:hover{background:var(--accent);color:#fff}
+/* section separator */
+hr.sep{border:none;border-top:1px solid var(--border);margin:.875rem 0}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="hd-left">
+    <span style="font-size:21px">🎬</span>
+    <h1>短影片爆款生成器</h1>
+  </div>
+  <span class="badge badge-pwa">PWA</span>
+</header>
+
+<main>
+
+<!-- 平台 + 目標 -->
+<div class="card">
+  <div class="stitle">📱 選擇平台</div>
+  <div class="ptabs">
+    <div class="ptab active" data-p="ig" onclick="selectPlatform('ig')">
+      <span class="ico">📸</span>Instagram
+    </div>
+    <div class="ptab" data-p="fb" onclick="selectPlatform('fb')">
+      <span class="ico">👥</span>Facebook
+    </div>
+    <div class="ptab" data-p="tk" onclick="selectPlatform('tk')">
+      <span class="ico">🎵</span>TikTok
+    </div>
+  </div>
+
+  <!-- 演算法快速說明列 -->
+  <div class="algo-bar visible" id="algoBar"></div>
+
+  <div class="stitle">🎯 影片目標</div>
+  <div class="goal-grid">
+    <div class="gbtn active" data-g="fans" onclick="selectGoal('fans')">
+      <span class="gi">👥</span>
+      <div><div class="gn">增粉漲粉</div><div class="gd">帳號成長</div></div>
+    </div>
+    <div class="gbtn" data-g="share" onclick="selectGoal('share')">
+      <span class="gi">🔄</span>
+      <div><div class="gn">轉發擴散</div><div class="gd">病毒傳播</div></div>
+    </div>
+    <div class="gbtn" data-g="comment" onclick="selectGoal('comment')">
+      <span class="gi">💬</span>
+      <div><div class="gn">留言互動</div><div class="gd">提升互動率</div></div>
+    </div>
+    <div class="gbtn" data-g="traffic" onclick="selectGoal('traffic')">
+      <span class="gi">🚀</span>
+      <div><div class="gn">導流私域</div><div class="gd">LINE / 社群</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 內容設定 -->
+<div class="card">
+  <div class="stitle">✍️ 內容設定</div>
+
+  <div class="fg">
+    <label>主題關鍵字<span class="req">*</span></label>
+    <input type="text" id="keyword" placeholder="例：居家收納、電商創業、健身減脂、美妝教學、親子料理...">
+  </div>
+
+  <div class="fg">
+    <label>產品 / 服務 / 品牌</label>
+    <input type="text" id="product" placeholder="例：我的整理課程、手工皂品牌、健身教練、親子部落格...">
+  </div>
+
+  <div class="fg">
+    <label>目標受眾</label>
+    <input type="text" id="audience" placeholder="例：25-35歲上班族女性、新手媽媽、想副業創業的年輕人...">
+  </div>
+
+  <div class="fg">
+    <label>痛點 / 亮點 / 情境描述</label>
+    <textarea id="extra" placeholder="例：很多人整理後三天又亂了，我的方法讓客戶半年後還維持整潔。希望讓觀眾感受到「原來我也做得到」的希望感..."></textarea>
+  </div>
+
+  <div class="fg">
+    <label>內容風格</label>
+    <div class="tone-row">
+      <div class="tpill active" data-t="教學乾貨型" onclick="selTone(this)">📚 教學乾貨</div>
+      <div class="tpill" data-t="故事敘事型" onclick="selTone(this)">📖 故事敘事</div>
+      <div class="tpill" data-t="Before/After對比型" onclick="selTone(this)">⚡ 對比反差</div>
+      <div class="tpill" data-t="情緒共鳴型" onclick="selTone(this)">💖 情緒共鳴</div>
+      <div class="tpill" data-t="挑戰質疑型" onclick="selTone(this)">🔥 挑戰爭議</div>
+      <div class="tpill" data-t="懸念揭秘型" onclick="selTone(this)">🔍 懸念揭秘</div>
+      <div class="tpill" data-t="幽默娛樂型" onclick="selTone(this)">😂 幽默娛樂</div>
+      <div class="tpill" data-t="真人直播感型" onclick="selTone(this)">🎙️ 真實感</div>
+    </div>
+  </div>
+</div>
+
+<!-- API 設定 -->
+<div class="card">
+  <div class="stitle">🔑 Claude API 設定</div>
+  <div class="api-row">
+    <div class="fg" style="margin-bottom:0">
+      <label>API Key</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-api03-..." autocomplete="off">
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <label>模型</label>
+      <select id="modelSel">
+        <option value="claude-sonnet-4-6">Sonnet 4.6（推薦）</option>
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5（快速）</option>
+      </select>
+    </div>
+  </div>
+  <p class="api-note">🔒 API Key 僅在瀏覽器本地使用，不傳送至任何第三方伺服器</p>
+</div>
+
+<button class="gen-btn" id="genBtn" onclick="generate()">
+  ✨ 一鍵生成爆款腳本
+</button>
+
+<div class="prog-area" id="progArea">
+  <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+  <div class="prog-txt" id="progTxt">分析平台演算法...</div>
+</div>
+
+<div class="output" id="output">
+  <div id="oTitles" class="ocard"></div>
+  <div id="oEmpathy" class="ocard"></div>
+  <div id="oScript" class="ocard"></div>
+  <div id="oBgm" class="ocard"></div>
+  <div id="oHashtags" class="ocard"></div>
+  <div id="oTips" class="ocard"></div>
+  <div id="oMetrics" class="ocard"></div>
+
+  <div class="regen-row">
+    <button class="regen-btn" onclick="generate()">🔄 重新生成</button>
+    <button class="regen-btn" onclick="genAll()">🌐 三平台全生成</button>
+  </div>
+
+  <div class="exp-row">
+    <button class="expbtn" onclick="exportTxt()">📄 匯出 TXT</button>
+    <button class="expbtn" onclick="exportMd()">📝 匯出 MD</button>
+    <button class="expbtn" onclick="copyAll()">📋 複製全部</button>
+  </div>
+</div>
+
+</main>
+
+<script>
+/* ── 狀態 ── */
+let platform='ig', goal='fans', tone='教學乾貨型';
+let lastResult='', lastKeyword='', allLastResults=[];
+
+/* ── 演算法知識庫（2024-2025 最新） ── */
+const ALGO={
+  ig:{
+    name:'Instagram',icon:'📸',
+    summary:'<strong>IG Reels 演算法重點</strong>儲存率 › 分享率 › 留言 › 完播率 › 按讚。前1秒靜態縮圖衝擊力決定點擊，85%用戶靜音觀看，字幕是必須。70-80%觀眾是非粉絲，每支Reels都是新增粉機會。',
+    algo:`
+■ 演算法核心指標（優先序）：
+  1. 儲存率（Save Rate）— 最強信號，教學/乾貨/清單型最高
+  2. 分享率（Share Rate）— 分享到限時動態/私訊給朋友
+  3. 完播率（Completion Rate）— 重播次數是加分項
+  4. 留言互動（尤其是有意義的長留言）
+  5. 按讚（權重最低）
+
+■ 內容格式規範：
+  - 最佳時長：7-15秒完播率最高；30-60秒互動深度最佳；勿超過90秒
+  - 比例：豎屏 9:16，解析度 1080x1920
+  - 前0-1秒：靜止縮圖必須有衝擊力（用戶點擊前看到的就是第一幀）
+  - 85%用戶靜音觀看 → 字幕大字覆蓋是必須，字體清晰、位置在螢幕中上區
+  - 前3秒內必須出現核心關鍵字（螢幕文字+口播同步）
+  - 色彩對比強烈、背景簡潔、主體突出
+
+■ 爆款鉤子類型（IG 最有效）：
+  - 「數字型」：「3個讓你...的方法」
+  - 「反直覺型」：「你以為...但其實...」
+  - 「好奇缺口型」：「沒有人告訴你的...」
+  - 「同理痛點型」：「你是不是也...」
+  - 「Before畫面型」：直接展示最終結果（吸引追看How）
+
+■ 拉高儲存率的內容模式：
+  清單型、步驟教學、資訊圖、可重複參考的資源、讓人想「以後再看」的乾貨
+
+■ 引發分享的觸發點：
+  強烈情緒共鳴（「這說出了我的心聲！」）、實用到想存、幽默到想傳給朋友
+
+■ 發文最佳時段：
+  週二、週三、週五 上午9-11點；下午3-5點；晚上8-10點（台灣時區）
+
+■ 互動助攻技巧：
+  - 說明文字中留「...更多見留言處」引導留言
+  - 封面設計要像雜誌封面，讓profile page整體吸引人
+  - 發文後前30分鐘積極回覆每一則留言（觸發演算法推播）
+    `,
+    duration:'30-60秒',hookTime:'前1秒',muteRate:'85%',coverage:'70-80%非粉絲'
+  },
+  fb:{
+    name:'Facebook',icon:'👥',
+    summary:'<strong>FB 演算法重點</strong>「有意義的社交互動」是核心。情緒反應權重：😮驚訝 › 😢感動 › 😡憤怒 › 😆哈哈 › 👍讚。留言互動 > 分享到限時/私訊 > 按讚。FB Reels 現在比一般影片有更多免費觸及。',
+    algo:`
+■ 演算法核心：「有意義的社交互動（MSI）」
+  1. 情緒反應（😮😢😡😆比👍權重高3-5倍）
+  2. 留言互動（長留言 >> 短留言 >> 貼圖）
+  3. 分享（分享到限時/私訊 > 分享到塗鴉牆）
+  4. 完播率（FB Reels的完播率影響冷啟動推流）
+  5. 標記朋友（社交擴散的強信號）
+
+■ 內容格式規範：
+  - FB Reels：15-60秒豎屏 9:16（最多免費觸及）
+  - 一般影片：3-5分鐘橫屏16:9（適合深度內容）
+  - 縮圖文字：加入引發好奇或情緒的標題文字
+  - 說明文字：前2行是關鍵（點「更多」前的預覽），放最強的鉤子
+  - 不要在影片或說明中放外部連結（演算法降權）→ 連結放留言
+
+■ 爆款鉤子類型（FB 最有效）：
+  - 「情緒型」：引發強烈情感反應（感動/憤怒/驚訝）
+  - 「身份認同型」：「30歲後才懂的...」「當媽媽之後才明白...」
+  - 「社會比較型」：「你認識這樣的人嗎？」
+  - 「記憶喚起型」：「有沒有人跟我一樣...」
+  - 「警告/提醒型」：「這件事一定要讓你知道...」
+
+■ 引發留言的設計（FB互動引擎）：
+  - 在影片結尾或說明文字中提問
+  - 「A還是B？留言告訴我！」選邊站設計
+  - 「你有沒有過這種經驗？」開放式問題
+  - 「標記一個也需要看到這個的朋友 👇」
+
+■ 引發分享的觸發點：
+  - 強烈同理感（「這就是在說我！」）
+  - 「傳給特定對象」衝動（父母/伴侶/閨蜜/同事）
+  - 社會正義感/育兒焦慮/財務焦慮/人際共鳴
+
+■ 發文最佳時段：
+  週三、週四、週五、週六下午1-4點；晚上7-9點（台灣時區）
+
+■ 觸及助攻：
+  - 先發到個人塗鴉牆，再分享到粉絲頁（觸及更廣）
+  - 發文後立即在留言區放連結、補充資訊
+  - 回覆每則留言（讓演算法判斷「有互動價值」）
+    `,
+    duration:'15-60秒(Reels) / 3-5分(一般)',hookTime:'前3秒',muteRate:'70%',coverage:'朋友/群組優先'
+  },
+  tk:{
+    name:'TikTok',icon:'🎵',
+    summary:'<strong>TK 演算法重點</strong>完播率是最高權重信號，重播率更是超強信號。冷啟動池先給200-500人，完播率高才推更大流量池。前1.5秒「停止滑動」是生死關鍵。',
+    algo:`
+■ 演算法核心：流量池逐級推送機制
+  冷啟動：200-500人（完播率>50%才進下一池）
+  →第二池：5,000-10,000人
+  →第三池：10萬-50萬人
+  →更大流量池（只有爆款才到這層）
+
+■ 最重要指標（優先序）：
+  1. 完播率 — 最高權重（理想>70%）
+  2. 重播率 — 超強信號（用戶重看=品質極高）
+  3. 前60分鐘互動密度（留言+分享+收藏）
+  4. 分享率（分享到私訊>貼文分享）
+  5. 收藏率（類似IG儲存率）
+  6. 留言互動
+  7. 按讚（最低權重）
+
+■ 內容格式規範：
+  - 最佳時長：7-15秒完播率最高；21-34秒最容易上熱門；勿超過60秒（除非深度教學）
+  - 比例：豎屏 9:16，填滿整個螢幕
+  - 前1.5秒：唯一的機會——必須讓用戶停下滑動
+  - 字幕/文字疊加：全程字幕，字體大、清晰、顏色對比強
+  - 節奏：平均每2-3秒換一個鏡頭或畫面（快剪節奏）
+  - 音樂：使用平台熱門音樂（可提升30-50%觸及率）
+
+■ 爆款鉤子類型（TK 最有效）：
+  - 「直接結論型」：開頭直接說最震驚的結論，再解釋為什麼
+  - 「懸念製造型」：「等等，你絕對猜不到接下來...」
+  - 「視覺衝擊型」：開場就是最精彩/最震撼的畫面
+  - 「快問型」：「你知道為什麼...嗎？我來告訴你」
+  - 「計時型」：「給我15秒，我讓你...」
+
+■ 提升完播率的技巧（最關鍵）：
+  - 結尾設計呼應開頭（循環結構，引發重播）
+  - 每隔5-8秒製造「小高潮/小驚喜」維持注意力
+  - 影片最後2秒留下CTA（不要在高潮前說再見）
+  - 說話語速快1.2-1.5倍（剪掉所有停頓和「嗯...」）
+  - 分段預告：「還有一個更重要的，等我說完...」
+
+■ 引發留言的設計（TK演算法愛留言）：
+  - 「評論區告訴我你是哪一種？」
+  - 「猜猜我花了多少錢？」（數字猜測）
+  - 「你遇到過嗎？」（引發經驗分享）
+  - 刻意留下一個「明顯的小錯誤」（引發糾錯留言）
+
+■ 音樂選擇策略：
+  - 使用平台當週熱門音樂榜前50名
+  - 音樂節拍和影片剪輯節奏同步（踩點剪輯）
+  - 原聲影片加入文字「🎵使用了OriginalSound」也可引流
+
+■ 發文最佳時段：
+  週二、週四、週五晚上7-9點；週末下午2-5點（台灣時區）
+    `,
+    duration:'21-34秒（最佳）',hookTime:'前1.5秒',muteRate:'60%',coverage:'演算法主導，非粉絲為主'
+  }
+};
+
+const GOAL_NAMES={fans:'增粉漲粉',share:'轉發擴散',comment:'留言互動',traffic:'導流私域'};
+
+/* ── 共情共鳴共感框架 ── */
+const EMPATHY_FRAMEWORK=`
+■ 「三共原則」框架（核心必須遵守）：
+  1. 共情（Empathy）— 「他懂我的感受」
+     - 用「你是不是也...」「你有沒有過...」引導
+     - 描述具體、真實的痛點場景（不是泛指，是細節）
+     - 讓觀眾感受：「這就是在說我！」
+
+  2. 共鳴（Resonance）— 「我也這樣！原來不只有我」
+     - 說出大家有但沒說出口的感受
+     - 反常識、顛覆期待的觀點
+     - 讓觀眾感受：「終於有人說出來了！」
+
+  3. 共感（Sympathy）— 「我被這個打動了」
+     - 真實故事或Before/After情感起伏
+     - 希望感、蛻變感、「我也能做到」的相信
+     - 讓觀眾感受：「我好感動/好有希望/好想試試」
+
+■ 引發留言的五大設計（任選1-2個放在結尾）：
+  A. 開放式問題：「你現在最困擾的是哪一點？留言告訴我」
+  B. 選邊站：「你是A派還是B派？評論區集合！」
+  C. 填空題：「我最難接受的是___，你呢？」
+  D. 數字猜測：「猜猜我花了多少？答案在留言」
+  E. 求救/徵求：「有沒有人遇過這樣的情況？好想聽你們的經歷」
+
+■ 引發轉發的五大觸發點：
+  1. 「傳給特定人」衝動 — 「有沒有想到某個人需要看這個？」
+  2. 實用工具感 — 「先存起來，以後用得到」
+  3. 情緒釋放 — 「終於有人說出我的心聲！」
+  4. 身份認同 — 「這就是我！（分享到限時）」
+  5. 驚喜/笑點 — 意外反轉、出乎意料的結局
+
+■ 提升觀看時長的五大結構技巧：
+  1. 倒敘法：先秀結果，再說過程（好奇驅動追看）
+  2. 懸念預告：「等等，還有一個更重要的...」
+  3. 分段提示：「第3個方法是最多人忽略的」
+  4. 循環結構：結尾呼應開頭（引發重播）
+  5. 小高潮節奏：每5-8秒安排一個「驚喜/轉折/乾貨」
+`;
+
+/* ── 目標策略 ── */
+const GOAL_STRATEGY={
+  fans:`【增粉策略】
+  核心邏輯：讓觀眾感受到「追蹤這個帳號，我的生活/事業會變更好」
+  - 在影片中展示你的「獨家價值主張」（觀眾只能在你這裡得到的東西）
+  - 「關注我，每週分享X個...」（明確告訴追蹤的理由）
+  - 展示專業深度但用通俗語言（讓人覺得「這人很厲害但說得懂」）
+  - CTA必須包含：「追蹤我的帳號，不錯過更多...」`,
+  share:`【轉發策略】
+  核心邏輯：製造「我要傳給XXX看」或「這個必須留下來」的衝動
+  - 設計「傳給特定對象」的場景（「這個要傳給你老媽看！」）
+  - 強情緒共鳴：感動/憤怒/驚訝/爆笑（任一強烈情緒）
+  - 說出大眾有共鳴但沒說出口的感受
+  - CTA：「如果你身邊也有這樣的人，分享給他看」「存起來以後用得到」`,
+  comment:`【留言策略】
+  核心邏輯：讓觀眾覺得「我有話想說」並且「說了有人會回應」
+  - 提出有爭議性/引發討論的觀點（不必是主流意見）
+  - 在影片中設計「選邊站」的場景
+  - 故意留一個「開放式問題」讓觀眾填答
+  - CTA必須是一個具體問題：「你覺得哪個方法最有效？留言告訴我！」`,
+  traffic:`【導流策略】
+  核心邏輯：讓觀眾覺得「不去那裡我就虧了」
+  - 製造稀缺感：「只在私域分享」「限時限量」「會員專屬」
+  - 提供私域獨家福利（免費資源/折扣/1對1）
+  - 展示私域的「人情味/社群溫度」（不只是賣東西的地方）
+  - CTA：「限時免費加入，超過X人就關閉」「私訊我『關鍵字』領取免費...」`
+};
+
+/* ── UI 互動 ── */
+function selectPlatform(p){
+  platform=p;
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.ptab[data-p="${p}"]`).classList.add('active');
+  updateAlgoBar();
+}
+function selectGoal(g){
+  goal=g;
+  document.querySelectorAll('.gbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.gbtn[data-g="${g}"]`).classList.add('active');
+}
+function selTone(el){
+  document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  tone=el.dataset.t;
+}
+function updateAlgoBar(){
+  const a=ALGO[platform];
+  document.getElementById('algoBar').innerHTML=a.summary;
+}
+updateAlgoBar();
+
+/* ── Prompt 建構 ── */
+function buildPrompt(kw,product,audience,extra,p,g,t){
+  const a=ALGO[p];
+  return `你是2025年最頂尖的${a.name}短影片爆款腳本創作師，深度掌握${a.name}最新演算法機制、病毒傳播心理學、三共原則（共情/共鳴/共感）框架。
+
+═══════════════════════════════════
+【本次任務輸入】
+═══════════════════════════════════
+- 主題關鍵字：${kw}
+- 產品/服務：${product||'（未指定）'}
+- 目標受眾：${audience||'一般大眾'}
+- 痛點/補充說明：${extra||'（未指定）'}
+- 內容風格：${t}
+- 影片目標：${GOAL_NAMES[g]}
+
+═══════════════════════════════════
+【${a.name}演算法深度知識】
+═══════════════════════════════════
+${a.algo}
+
+═══════════════════════════════════
+【三共原則 + 互動設計框架】
+═══════════════════════════════════
+${EMPATHY_FRAMEWORK}
+
+═══════════════════════════════════
+【影片目標專屬策略】
+═══════════════════════════════════
+${GOAL_STRATEGY[g]}
+
+═══════════════════════════════════
+【輸出格式要求】嚴格按照以下標籤格式輸出，繁體中文，語氣口語化、有溫度
+═══════════════════════════════════
+
+---TITLES---
+【三個爆款標題方案】（供選擇，各有不同策略）
+標題A（數字/結果導向）：[使用具體數字或Before/After結果]
+標題B（好奇缺口/疑問）：[製造「我要知道答案」的好奇缺口]
+標題C（痛點/情緒共鳴）：[直擊目標受眾最深的痛點或情緒]
+【封面文字建議】：[封面大字，4-8個字，不看完都要點開的衝動]
+
+---EMPATHY---
+【三共分析：這支影片如何觸動觀眾】
+共情設計：[這支影片在哪個場景/台詞讓觀眾感受到「他懂我」]
+共鳴設計：[這支影片說出了什麼觀眾有共鳴卻沒說出口的感受]
+共感設計：[這支影片在哪個時刻讓觀眾產生情感連結/被打動]
+情緒弧線：[影片的情緒起伏設計：開場情緒→中段情緒→結尾情緒]
+
+---HOOK---
+【黃金開場鉤子（${a.hookTime}停止滑動）】
+▶ 視覺第一幀：[具體描述第一個鏡頭，必須有衝擊力]
+▶ 開場口播：[開場3秒台詞，讓人停下滑動，語氣口語有力]
+▶ 螢幕大字幕：[覆蓋畫面的大字，前1秒就要出現]
+▶ 情緒觸發：[這個開場觸發的是什麼情緒——好奇/恐懼/驚喜/共鳴/慾望]
+▶ 停止滑動的理由：[用一句話說明為什麼用戶會停下來繼續看]
+
+---SCRIPT---
+【完整腳本（時間軸分段）】
+
+⏱ [0-${a.hookTime.includes('1.5')?'3':'3'}秒] 🪝 停止滑動鉤子：
+畫面｜[鏡頭描述]
+口播｜[台詞——語速快、直接、有力]
+字幕｜[大字幕文字]
+剪輯節奏｜[畫面切換說明]
+
+⏱ [4-12秒] 📖 共情展開（建立「他懂我」）：
+畫面｜[鏡頭描述]
+口播｜[描述痛點場景，用「你是不是也...」引導]
+字幕｜[強調痛點的字幕]
+情緒設計｜[觀眾此刻的感受]
+
+⏱ [13-22秒] 💡 核心價值（共鳴高潮 + 乾貨/轉折）：
+畫面｜[鏡頭描述]
+口播｜[核心觀點/方法，說出不常被說出的真相，製造「原來如此！」]
+字幕｜[關鍵觀點的大字幕]
+懸念保留｜[如何讓觀眾繼續看到最後]
+
+⏱ [23-${a.duration.includes('60')?'55':'30'}秒] 📣 共感收尾 + CTA（${GOAL_NAMES[g]}）：
+畫面｜[鏡頭描述]
+口播｜[情感落地+明確行動號召台詞，讓觀眾覺得「我要做些什麼」]
+字幕｜[行動號召大字]
+CTA設計｜[根據${GOAL_NAMES[g]}目標的具體互動指令]
+留言引爆句｜[結尾提問，引發留言]
+
+---BGM---
+【音樂/BGM建議（${a.name}專用）】
+推薦風格：[節奏/情緒/類型描述]
+踩點建議：[哪個時間點配合音樂做視覺切換]
+${p==='tk'?'TikTok熱門音樂方向：[當前適合的音樂類型/風格]':'靜音友善設計：[確保靜音下仍能完整理解內容的設計]'}
+
+---HASHTAGS---
+【標籤策略（${a.name}專屬，三層佈局）】
+🔥 熱門大標籤（百萬+觸及，借勢引流）：
+[5個#標籤]
+
+🎯 精準中標籤（萬-百萬，精準觸達受眾）：
+[5個#標籤]
+
+💎 長尾精準標籤（千-萬，競爭低、命中率高）：
+[5個#標籤]
+
+📌 品牌/話題專屬標籤（建立自己的流量池）：
+[2個建議]
+
+---ALGOTIPS---
+【演算法優化 + 發布後行動清單】
+發布前：
+1. [封面/縮圖優化建議]
+2. [說明文字撰寫技巧]
+3. [最佳發布時段]
+發布後（前30分鐘衝信號）：
+4. [立即執行的互動動作]
+5. [留言區操作策略]
+長期優化：
+6. [帳號整體增長建議]
+
+---METRICS---
+預估完播率：[X%-Y%]
+互動率目標：[X%-Y%]
+最佳影片長度：[X秒]
+預計觸及非粉絲比例：[X%]
+建議發文頻率：[每週X次]`;
+}
+
+/* ── 生成主函數（返回 Promise） ── */
+function generate(overridePlatform, overrideGoal){
+  return new Promise(async(resolve)=>{
+    const p=overridePlatform||platform;
+    const g=overrideGoal||goal;
+    const kw=document.getElementById('keyword').value.trim();
+    if(!kw){alert('請輸入主題關鍵字');resolve(null);return;}
+    const apiKey=document.getElementById('apiKey').value.trim();
+    if(!apiKey){alert('請輸入 Claude API Key');resolve(null);return;}
+
+    lastKeyword=kw;
+    const btn=document.getElementById('genBtn');
+    btn.disabled=true;
+    const pa=document.getElementById('progArea');
+    pa.classList.add('show');
+    document.getElementById('output').classList.remove('show');
+
+    const steps=[
+      '🔍 分析'+ALGO[p].name+'演算法機制...',
+      '🧲 套用三共原則框架...',
+      '🪝 設計黃金開場鉤子...',
+      '✍️ 撰寫共情共鳴腳本...',
+      '💡 優化觀看時長結構...',
+      '📣 設計留言引爆CTA...',
+      '#️⃣ 配置三層標籤策略...',
+      '📊 計算效益預測指標...'
+    ];
+    let si=0;
+    const fill=document.getElementById('progFill');
+    const stEl=document.getElementById('progTxt');
+    const timer=setInterval(()=>{
+      if(si<steps.length){stEl.textContent=steps[si];fill.style.width=((si+1)/steps.length*82)+'%';si++;}
+    },650);
+
+    try{
+      const model=document.getElementById('modelSel').value;
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'x-api-key':apiKey,
+          'anthropic-version':'2023-06-01',
+          'content-type':'application/json',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({
+          model,max_tokens:3000,
+          messages:[{role:'user',content:buildPrompt(
+            kw,
+            document.getElementById('product').value,
+            document.getElementById('audience').value,
+            document.getElementById('extra').value,
+            p,g,tone
+          )}]
+        })
+      });
+      const data=await resp.json();
+      if(!resp.ok)throw new Error(data.error?.message||'API 錯誤');
+      const text=data.content[0].text;
+      lastResult=text;
+      clearInterval(timer);
+      fill.style.width='100%';
+      stEl.textContent='✅ 生成完成！';
+      setTimeout(()=>{
+        pa.classList.remove('show');
+        btn.disabled=false;
+        renderOutput(text,p,g);
+        resolve(text);
+      },500);
+    }catch(e){
+      clearInterval(timer);
+      pa.classList.remove('show');
+      btn.disabled=false;
+      alert('生成失敗：'+e.message);
+      resolve(null);
+    }
+  });
+}
+
+/* ── 解析區段 ── */
+function extractSection(text,tag){
+  const re=new RegExp(`---${tag}---([\\s\\S]*?)(?=---[A-Z]+---|$)`,'i');
+  const m=text.match(re);
+  return m?m[1].trim():'';
+}
+
+/* ── 渲染輸出 ── */
+function platformBadge(p){
+  const a=ALGO[p];
+  return `<span class="pbadge pbadge-${p}">${a.icon} ${a.name}</span>`;
+}
+
+function renderOutput(text,p,g){
+  const sec=tag=>extractSection(text,tag);
+  const titles=sec('TITLES'),empathy=sec('EMPATHY'),hook=sec('HOOK');
+  const script=sec('SCRIPT'),bgm=sec('BGM'),hashtags=sec('HASHTAGS');
+  const tips=sec('ALGOTIPS'),metrics=sec('METRICS');
+
+  const el=id=>document.getElementById(id);
+  const pb=platformBadge(p);
+  const goalBadge=`<span class="badge" style="background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);font-size:10.5px">${GOAL_NAMES[g]}</span>`;
+  const toneBadge=`<span class="badge" style="background:var(--success-bg);color:var(--success);border-color:var(--success-border);font-size:10.5px">${tone}</span>`;
+
+  /* 標題 */
+  el('oTitles').innerHTML=`
+    <div class="ohead">
+      <h3>✨ 爆款標題方案</h3>
+      <button class="copy-btn" onclick="cpTxt(${JSON.stringify(titles)})">📋 複製標題</button>
+    </div>
+    <div class="meta-row">${pb}${goalBadge}${toneBadge}</div>
+    <div class="cbox">${esc(titles)}</div>`;
+
+  /* 共情分析 */
+  el('oEmpathy').innerHTML=`
+    <div class="ohead">
+      <h3>💖 三共分析（共情 / 共鳴 / 共感）</h3>
+    </div>
+    <div class="tagrow">
+      <span class="tag t-emp">💖 共情設計</span>
+      <span class="tag t-hook">🔥 共鳴設計</span>
+      <span class="tag t-algo">✨ 共感設計</span>
+    </div>
+    <div class="cbox">${esc(empathy)}</div>`;
+
+  /* 腳本 */
+  el('oScript').innerHTML=`
+    <div class="ohead">
+      <h3>🎬 完整腳本（時間軸分段）</h3>
+      <button class="copy-btn" onclick="cpTxt(${JSON.stringify(hook+'\n\n'+script)})">📋 複製腳本</button>
+    </div>
+    <div class="tagrow">
+      <span class="tag t-hook">🪝 黃金鉤子</span>
+      <span class="tag t-algo">📈 演算法優化</span>
+      <span class="tag t-emp">💖 三共原則</span>
+      <span class="tag t-cta">📣 ${GOAL_NAMES[g]} CTA</span>
+    </div>
+    <div class="cbox"><strong>▶ 黃金開場鉤子</strong>${esc(hook)}</div>
+    <div class="cbox"><strong>▶ 完整時間軸腳本</strong>${esc(script)}</div>`;
+
+  /* BGM */
+  el('oBgm').innerHTML=`
+    <div class="ohead">
+      <h3>🎵 音樂 / BGM 建議</h3>
+    </div>
+    <div class="warnbox">${esc(bgm)}</div>`;
+
+  /* 標籤 */
+  el('oHashtags').innerHTML=`
+    <div class="ohead">
+      <h3>#️⃣ 三層標籤策略</h3>
+      <button class="copy-btn" onclick="cpTxt(${JSON.stringify(hashtags)})">📋 複製標籤</button>
+    </div>
+    <div class="cbox">${esc(hashtags)}</div>`;
+
+  /* 演算法 tips */
+  el('oTips').innerHTML=`
+    <div class="ohead">
+      <h3>⚙️ 演算法優化 + 發布行動清單</h3>
+    </div>
+    <div class="tipbox">${esc(tips)}</div>`;
+
+  /* 指標 */
+  function getMt(label){
+    const m=metrics.match(new RegExp(label+'[：:]\\s*([^\\n]+)'));
+    return m?m[1].trim():'-';
+  }
+  el('oMetrics').innerHTML=`
+    <div class="ohead"><h3>📊 預期效益指標</h3></div>
+    <div class="mets">
+      <div class="met"><div class="mv">${getMt('預估完播率')}</div><div class="ml">完播率</div></div>
+      <div class="met"><div class="mv">${getMt('互動率目標')}</div><div class="ml">互動率</div></div>
+      <div class="met"><div class="mv">${getMt('最佳影片長度')}</div><div class="ml">建議長度</div></div>
+      <div class="met"><div class="mv">${getMt('建議發文頻率')}</div><div class="ml">發文頻率</div></div>
+    </div>
+    <div class="cbox" style="font-size:12.5px">${esc(metrics)}</div>`;
+
+  el('output').classList.add('show');
+  el('oTitles').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function cpTxt(t){
+  navigator.clipboard.writeText(t).then(()=>showToast('已複製 ✓'));
+}
+function copyAll(){
+  navigator.clipboard.writeText(lastResult).then(()=>showToast('已複製全部內容 ✓'));
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function exportTxt(){
+  if(!lastResult){alert('請先生成腳本');return;}
+  const blob=new Blob([lastResult],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`腳本_${lastKeyword}_${ALGO[platform].name}_${Date.now()}.txt`;
+  a.click();
+}
+
+function exportMd(){
+  if(!lastResult){alert('請先生成腳本');return;}
+  const md=`# 短影片爆款腳本
+
+| 項目 | 內容 |
+|------|------|
+| **平台** | ${ALGO[platform].name} |
+| **目標** | ${GOAL_NAMES[goal]} |
+| **風格** | ${tone} |
+| **主題** | ${lastKeyword} |
+| **生成時間** | ${new Date().toLocaleString('zh-TW')} |
+
+---
+
+${lastResult}`;
+  const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`腳本_${lastKeyword}_${Date.now()}.md`;
+  a.click();
+}
+
+async function genAll(){
+  const kw=document.getElementById('keyword').value.trim();
+  if(!kw){alert('請先輸入主題關鍵字');return;}
+  const apiKey=document.getElementById('apiKey').value.trim();
+  if(!apiKey){alert('請輸入 Claude API Key');return;}
+  if(!confirm('將依序生成 Instagram + Facebook + TikTok 三平台腳本（需3-5分鐘），確認繼續？'))return;
+
+  const platforms=['ig','fb','tk'];
+  allLastResults=[];
+  for(const p of platforms){
+    showToast(`正在生成 ${ALGO[p].name} 腳本...`);
+    const result=await generate(p,goal);
+    if(result){
+      allLastResults.push({platform:p,result});
+    }
+  }
+
+  if(allLastResults.length>0){
+    const content=[
+      `短影片爆款腳本 — 三平台完整版`,
+      `主題：${kw}  目標：${GOAL_NAMES[goal]}  風格：${tone}`,
+      `生成時間：${new Date().toLocaleString('zh-TW')}`,
+      '',
+      ...allLastResults.map(({platform:p,result})=>[
+        '='.repeat(60),
+        `平台：${ALGO[p].name}`,
+        '='.repeat(60),
+        result,
+        ''
+      ].join('\n'))
+    ].join('\n');
+
+    const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`三平台腳本_${kw}_${Date.now()}.txt`;
+    a.click();
+    showToast('三平台腳本已下載！');
+  }
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
