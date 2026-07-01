@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Her Aurora</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#040810;display:flex;align-items:center;justify-content:center;overflow:hidden}
+canvas{display:block;max-width:min(100vw,100vh);max-height:min(100vw,100vh);border-radius:12px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const SIZE = Math.min(window.innerWidth, window.innerHeight);
+cv.width = cv.height = SIZE;
+const W = SIZE, H = SIZE;
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  const bg = ctx.createRadialGradient(W*0.2, H*0.78, 0, W*0.5, H*0.5, W);
+  bg.addColorStop(0, '#1c1a08');
+  bg.addColorStop(0.15, '#0f1520');
+  bg.addColorStop(0.5, '#080d1a');
+  bg.addColorStop(1, '#040810');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Aurora bands
+  [
+    {cx:0.6, cy:0.18, rx:420, ry:70, rot:-0.18, col:'120,60,220', a:0.09},
+    {cx:0.45,cy:0.28, rx:350, ry:50, rot:0.08,  col:'60,200,200', a:0.08},
+    {cx:0.7, cy:0.35, rx:300, ry:40, rot:-0.1,  col:'160,80,255', a:0.07},
+    {cx:0.3, cy:0.22, rx:280, ry:45, rot:0.12,  col:'40,220,180', a:0.06},
+    {cx:0.55,cy:0.12, rx:380, ry:38, rot:-0.05, col:'100,40,200', a:0.05},
+    {cx:0.5, cy:0.42, rx:500, ry:30, rot:0.04,  col:'20,180,160', a:0.04},
+  ].forEach(b => {
+    ctx.save();
+    ctx.translate(b.cx*W, b.cy*H);
+    ctx.rotate(b.rot);
+    const g = ctx.createRadialGradient(0,0,0,0,0,b.rx);
+    g.addColorStop(0, `rgba(${b.col},${b.a*2.5})`);
+    g.addColorStop(0.4, `rgba(${b.col},${b.a})`);
+    g.addColorStop(1, `rgba(${b.col},0)`);
+    ctx.scale(1, b.ry/b.rx);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0,0,b.rx,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  const sx = W*0.16, sy = H*0.84;
+
+  // Dense rays
+  for (let i = 0; i < 180; i++) {
+    const angle = (i/180)*Math.PI*2;
+    const len = (300 + Math.random()*320) * (W/800);
+    const alpha = 0.06 + Math.random()*0.14;
+    const grad = ctx.createLinearGradient(sx,sy, sx+Math.cos(angle)*len, sy+Math.sin(angle)*len);
+    grad.addColorStop(0, `rgba(255,220,80,${alpha*3.5})`);
+    grad.addColorStop(0.2,`rgba(240,180,60,${alpha*1.5})`);
+    grad.addColorStop(0.6,`rgba(200,140,30,${alpha*0.6})`);
+    grad.addColorStop(1, 'rgba(180,110,10,0)');
+    ctx.beginPath();
+    ctx.moveTo(sx,sy);
+    ctx.lineTo(sx+Math.cos(angle)*len, sy+Math.sin(angle)*len);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 0.5 + Math.random()*1.8;
+    ctx.stroke();
+  }
+
+  // Fine accent rays
+  for (let i = 0; i < 90; i++) {
+    const angle = -Math.PI*0.95 + (i/90)*Math.PI*0.9;
+    const len = (350 + Math.random()*250) * (W/800);
+    const alpha = 0.03 + Math.random()*0.06;
+    ctx.beginPath();
+    ctx.moveTo(sx,sy);
+    ctx.lineTo(sx+Math.cos(angle)*len, sy+Math.sin(angle)*len);
+    ctx.strokeStyle = `rgba(255,240,180,${alpha})`;
+    ctx.lineWidth = 0.3;
+    ctx.stroke();
+  }
+
+  // Core glow
+  const r = W*0.25;
+  const core = ctx.createRadialGradient(sx,sy,0,sx,sy,r);
+  core.addColorStop(0, 'rgba(255,250,200,0.95)');
+  core.addColorStop(0.05,'rgba(255,230,120,0.7)');
+  core.addColorStop(0.2, 'rgba(240,180,60,0.35)');
+  core.addColorStop(0.5, 'rgba(220,140,30,0.12)');
+  core.addColorStop(1, 'rgba(200,120,10,0)');
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(sx,sy,r,0,Math.PI*2);
+  ctx.fill();
+
+  const inner = ctx.createRadialGradient(sx,sy,0,sx,sy,W*0.035);
+  inner.addColorStop(0,'rgba(255,255,255,1)');
+  inner.addColorStop(0.5,'rgba(255,250,200,0.8)');
+  inner.addColorStop(1,'rgba(255,220,80,0)');
+  ctx.fillStyle = inner;
+  ctx.beginPath();
+  ctx.arc(sx,sy,W*0.035,0,Math.PI*2);
+  ctx.fill();
+
+  // Stars
+  for (let i = 0; i < 320; i++) {
+    const x = Math.random()*W, y = Math.random()*H;
+    const r2 = Math.random()<0.8 ? 0.4+Math.random()*1.0 : (1.8+Math.random()*3.5)*(W/800);
+    const gold = Math.random()<0.35, teal = Math.random()<0.2;
+    const a = 0.4+Math.random()*0.6;
+    const col = gold?'240,210,110':teal?'80,220,200':'180,200,255';
+    if (r2>1.5) {
+      const sg = ctx.createRadialGradient(x,y,0,x,y,r2*3.5);
+      sg.addColorStop(0,`rgba(${col},${a})`);
+      sg.addColorStop(0.5,`rgba(${col},${a*0.3})`);
+      sg.addColorStop(1,`rgba(${col},0)`);
+      ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(x,y,r2*3.5,0,Math.PI*2); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(x,y,r2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${col},${a})`; ctx.fill();
+  }
+
+  // Sparkles
+  [
+    {x:W*0.64,y:H*0.16,s:W*0.035,col:'255,240,160'},
+    {x:W*0.80,y:H*0.40,s:W*0.022,col:'180,255,220'},
+    {x:W*0.47,y:H*0.29,s:W*0.017,col:'255,240,160'},
+    {x:W*0.88,y:H*0.24,s:W*0.012,col:'200,160,255'},
+    {x:sx+W*0.25,y:sy-H*0.175,s:W*0.027,col:'255,240,160'},
+    {x:W*0.72,y:H*0.58,s:W*0.015,col:'160,240,255'},
+  ].forEach(sp=>{
+    ctx.save(); ctx.translate(sp.x,sp.y);
+    for(let a=0;a<4;a++){
+      ctx.rotate(Math.PI/4);
+      const lg=ctx.createLinearGradient(0,-sp.s,0,sp.s);
+      lg.addColorStop(0,`rgba(${sp.col},0)`);
+      lg.addColorStop(0.5,`rgba(${sp.col},0.95)`);
+      lg.addColorStop(1,`rgba(${sp.col},0)`);
+      ctx.fillStyle=lg; ctx.fillRect(-0.7,-sp.s,1.4,sp.s*2);
+    }
+    ctx.beginPath(); ctx.arc(0,0,1.8,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${sp.col},1)`; ctx.fill();
+    ctx.restore();
+  });
+
+  // "Her Aurora" text
+  const fs = Math.max(14, W*0.022);
+  ctx.save();
+  const tx=W-W*0.045, ty=H-H*0.042;
+  const tg2=ctx.createRadialGradient(tx-80,ty-8,0,tx-80,ty-8,90);
+  tg2.addColorStop(0,'rgba(200,160,60,0.18)');
+  tg2.addColorStop(1,'rgba(200,160,60,0)');
+  ctx.fillStyle=tg2;
+  ctx.beginPath(); ctx.ellipse(tx-80,ty-8,100,30,0,0,Math.PI*2); ctx.fill();
+
+  ctx.font=`300 ${fs}px Georgia,"Times New Roman",serif`;
+  ctx.textAlign='right';
+  ctx.fillStyle='rgba(255,240,160,0.90)';
+  ctx.shadowColor='rgba(240,200,80,0.7)';
+  ctx.shadowBlur=14;
+  ctx.fillText('Her Aurora',tx,ty);
+  ctx.shadowBlur=0;
+
+  const tw=ctx.measureText('Her Aurora').width;
+  const lineY=ty+fs*0.35;
+  const lg2=ctx.createLinearGradient(tx-tw,lineY,tx,lineY);
+  lg2.addColorStop(0,'rgba(240,200,80,0)');
+  lg2.addColorStop(0.3,'rgba(240,200,80,0.6)');
+  lg2.addColorStop(1,'rgba(240,200,80,0.2)');
+  ctx.beginPath(); ctx.moveTo(tx-tw,lineY); ctx.lineTo(tx,lineY);
+  ctx.strokeStyle=lg2; ctx.lineWidth=0.7; ctx.stroke();
+  ctx.restore();
+}
+
+draw();
+window.addEventListener('resize', () => {
+  const s = Math.min(window.innerWidth, window.innerHeight);
+  cv.width = cv.height = s;
+  draw();
+});
+</script>
+</body>
+</html>

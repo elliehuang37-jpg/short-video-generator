@@ -1,5 +1,5 @@
-const CACHE = 'video-gen-v2';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'video-gen-v3';
+const ASSETS = ['/', '/index.html', '/manifest.json', '/her-aurora.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
