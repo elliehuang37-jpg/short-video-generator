@@ -442,6 +442,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:.875rem 0}
   <div id="oTitles" class="ocard"></div>
   <div id="oEmpathy" class="ocard"></div>
   <div id="oScript" class="ocard"></div>
+  <div id="oStory" class="ocard"></div>
   <div id="oBgm" class="ocard"></div>
   <div id="oHashtags" class="ocard"></div>
   <div id="oTips" class="ocard"></div>
@@ -464,7 +465,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:.875rem 0}
 <script>
 /* ── 狀態 ── */
 let platform='ig', goal='fans', tone='教學乾貨型';
-let lastResult='', lastKeyword='', allLastResults=[];
+let lastResult='', lastKeyword='', allLastResults=[], lastStoryboard=[];
 
 /* ── 演算法知識庫（2024-2025 最新） ── */
 const ALGO={
@@ -824,6 +825,12 @@ ${p==='tk'?'TikTok熱門音樂方向：[當前適合的音樂類型/風格]':'�
 長期優化：
 6. [帳號整體增長建議]
 
+---STORYBOARD---
+【分鏡表（機器可解析格式，每行一個鏡頭，嚴格遵守格式）】
+每行格式：鏡頭編號｜開始秒-結束秒｜螢幕字幕（12字內）｜口播台詞｜畫面拍攝說明
+範例：1｜0-3｜你還在這樣整理嗎？｜你是不是也整理完三天又亂了？｜手持鏡頭快速掃過凌亂房間
+[輸出6-10行分鏡，秒數連續不重疊，涵蓋整支影片，字幕短而有力適合大字卡呈現]
+
 ---METRICS---
 預估完播率：[X%-Y%]
 互動率目標：[X%-Y%]
@@ -877,7 +884,7 @@ function generate(overridePlatform, overrideGoal){
           'anthropic-dangerous-direct-browser-access':'true'
         },
         body:JSON.stringify({
-          model,max_tokens:3000,
+          model,max_tokens:4500,
           messages:[{role:'user',content:buildPrompt(
             kw,
             document.getElementById('product').value,
@@ -927,7 +934,8 @@ function renderOutput(text,p,g){
   const sec=tag=>extractSection(text,tag);
   const titles=sec('TITLES'),empathy=sec('EMPATHY'),hook=sec('HOOK');
   const script=sec('SCRIPT'),bgm=sec('BGM'),hashtags=sec('HASHTAGS');
-  const tips=sec('ALGOTIPS'),metrics=sec('METRICS');
+  const tips=sec('ALGOTIPS'),metrics=sec('METRICS'),storyboard=sec('STORYBOARD');
+  lastStoryboard=parseStoryboard(storyboard);
 
   const el=id=>document.getElementById(id);
   const pb=platformBadge(p);
@@ -969,6 +977,31 @@ function renderOutput(text,p,g){
     </div>
     <div class="cbox"><strong>▶ 黃金開場鉤子</strong>${esc(hook)}</div>
     <div class="cbox"><strong>▶ 完整時間軸腳本</strong>${esc(script)}</div>`;
+
+  /* 分鏡表 + 影片製作 */
+  if(lastStoryboard.length){
+    const rows=lastStoryboard.map(s=>`
+      <tr><td>${s.n}</td><td>${s.start}-${s.end}s</td><td><strong>${esc(s.sub)}</strong></td><td>${esc(s.vo)}</td><td>${esc(s.shot)}</td></tr>`).join('');
+    el('oStory').innerHTML=`
+      <div class="ohead">
+        <h3>🎞 分鏡表 → 一鍵成片</h3>
+      </div>
+      <div class="tagrow">
+        <span class="tag t-hook">🎬 分鏡逐秒</span>
+        <span class="tag t-algo">📝 SRT字幕</span>
+        <span class="tag t-cta">🎥 字卡影片</span>
+      </div>
+      <div style="overflow-x:auto"><table class="sbtable">
+        <tr><th>#</th><th>時間</th><th>字幕</th><th>口播</th><th>畫面</th></tr>${rows}
+      </table></div>
+      <div class="sb-actions">
+        <button class="copy-btn" onclick="exportSRT()">⬇ 匯出 SRT 字幕（剪映/CapCut）</button>
+        <button class="copy-btn" onclick="exportVO()">⬇ 匯出口播稿（文字轉語音用）</button>
+        <button class="copy-btn sb-video-btn" onclick="openVideoGen()">🎥 生成字卡影片（9:16）</button>
+      </div>`;
+  }else{
+    el('oStory').innerHTML='';
+  }
 
   /* BGM */
   el('oBgm').innerHTML=`
@@ -1098,9 +1131,179 @@ async function genAll(){
   }
 }
 
+/* ── 分鏡解析：鏡頭N｜0-3｜字幕｜口播｜畫面 ── */
+function parseStoryboard(txt){
+  const shots=[];
+  (txt||'').split('\n').forEach(line=>{
+    const parts=line.split('｜').map(s=>s.trim());
+    if(parts.length<4)return;
+    const tm=(parts[1]||'').match(/(\d+(?:\.\d+)?)\s*[-–~]\s*(\d+(?:\.\d+)?)/);
+    if(!tm)return;
+    shots.push({
+      n:parts[0].replace(/[^0-9]/g,'')||String(shots.length+1),
+      start:parseFloat(tm[1]),end:parseFloat(tm[2]),
+      sub:parts[2]||'',vo:parts[3]||'',shot:parts[4]||''
+    });
+  });
+  return shots.filter(s=>s.end>s.start);
+}
+
+function srtTime(sec){
+  const h=String(Math.floor(sec/3600)).padStart(2,'0');
+  const m=String(Math.floor(sec%3600/60)).padStart(2,'0');
+  const s=String(Math.floor(sec%60)).padStart(2,'0');
+  const ms=String(Math.round(sec%1*1000)).padStart(3,'0');
+  return `${h}:${m}:${s},${ms}`;
+}
+
+function exportSRT(){
+  if(!lastStoryboard.length){alert('沒有分鏡資料，請先生成腳本');return;}
+  const srt=lastStoryboard.map((s,i)=>
+    `${i+1}\n${srtTime(s.start)} --> ${srtTime(s.end)}\n${s.sub}`
+  ).join('\n\n')+'\n';
+  dlBlob(srt,'text/plain',`字幕_${lastKeyword}.srt`);
+  showToast('SRT 已下載，可直接匯入剪映 / CapCut ✓');
+}
+
+function exportVO(){
+  if(!lastStoryboard.length){alert('沒有分鏡資料，請先生成腳本');return;}
+  const vo=lastStoryboard.map(s=>s.vo).join('\n');
+  dlBlob(vo,'text/plain',`口播稿_${lastKeyword}.txt`);
+  showToast('口播稿已下載，貼入剪映「文字轉語音」即可配音 ✓');
+}
+
+function dlBlob(content,type,name){
+  const blob=new Blob([content],{type:type+';charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+/* ── 字卡影片生成器（Canvas 1080×1920 + MediaRecorder） ── */
+let vgTimer=null,vgRecorder=null;
+function openVideoGen(){
+  if(!lastStoryboard.length){alert('沒有分鏡資料，請先生成腳本');return;}
+  document.getElementById('vgModal').classList.add('show');
+  drawShot(document.getElementById('vgCanvas').getContext('2d'),lastStoryboard[0],0);
+}
+function closeVideoGen(){
+  document.getElementById('vgModal').classList.remove('show');
+  if(vgTimer)cancelAnimationFrame(vgTimer);
+  if(vgRecorder&&vgRecorder.state!=='inactive')vgRecorder.stop();
+}
+
+function drawShot(ctx,shot,progress){
+  const W=1080,H=1920;
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0d1c33');bg.addColorStop(1,'#060d1c');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  /* 金色光暈 */
+  const g=ctx.createRadialGradient(W*0.15,H*0.9,0,W*0.15,H*0.9,700);
+  g.addColorStop(0,'rgba(232,184,75,0.22)');g.addColorStop(1,'rgba(232,184,75,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  /* 頂部主題 */
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(232,184,75,0.85)';
+  ctx.font='500 44px "Noto Sans TC",sans-serif';
+  ctx.fillText(lastKeyword,W/2,180);
+  ctx.strokeStyle='rgba(232,184,75,0.4)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(W/2-160,220);ctx.lineTo(W/2+160,220);ctx.stroke();
+  /* 主字幕（淡入 + 自動換行） */
+  const alpha=Math.min(1,progress*4);
+  ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+  ctx.font='700 92px "Noto Sans TC",sans-serif';
+  const lines=wrapText(ctx,shot.sub,W-160);
+  const lh=130,y0=H/2-(lines.length-1)*lh/2;
+  lines.forEach((ln,i)=>ctx.fillText(ln,W/2,y0+i*lh));
+  /* 口播小字 */
+  ctx.fillStyle=`rgba(180,200,225,${alpha*0.9})`;
+  ctx.font='400 46px "Noto Sans TC",sans-serif';
+  wrapText(ctx,shot.vo,W-220).slice(0,3).forEach((ln,i)=>ctx.fillText(ln,W/2,H*0.72+i*66));
+  /* 進度條 */
+  const total=lastStoryboard[lastStoryboard.length-1].end;
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(80,H-100,W-160,8);
+  ctx.fillStyle='#e8b84b';
+  const globalT=shot.start+(shot.end-shot.start)*progress;
+  ctx.fillRect(80,H-100,(W-160)*Math.min(1,globalT/total),8);
+  /* 鏡頭編號 */
+  ctx.textAlign='right';
+  ctx.fillStyle='rgba(232,184,75,0.5)';
+  ctx.font='400 36px sans-serif';
+  ctx.fillText(`${shot.n} / ${lastStoryboard.length}`,W-80,H-140);
+}
+
+function wrapText(ctx,text,maxW){
+  const chars=(text||'').split('');
+  const lines=[];let cur='';
+  chars.forEach(c=>{
+    if(ctx.measureText(cur+c).width>maxW){lines.push(cur);cur=c;}
+    else cur+=c;
+  });
+  if(cur)lines.push(cur);
+  return lines;
+}
+
+function recordVideo(){
+  const cv=document.getElementById('vgCanvas');
+  const ctx=cv.getContext('2d');
+  const btn=document.getElementById('vgRecBtn');
+  btn.disabled=true;btn.textContent='⏺ 錄製中...';
+  const stream=cv.captureStream(30);
+  const mime=MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':'video/webm';
+  vgRecorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6000000});
+  const chunks=[];
+  vgRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  vgRecorder.onstop=()=>{
+    const ext=mime==='video/mp4'?'mp4':'webm';
+    const blob=new Blob(chunks,{type:mime});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`字卡影片_${lastKeyword}.${ext}`;a.click();
+    btn.disabled=false;btn.textContent='⏺ 開始錄製並下載';
+    showToast(`影片已下載（${ext}）！加上BGM與素材即可發布 ✓`);
+  };
+  vgRecorder.start();
+  const t0=performance.now();
+  const total=lastStoryboard[lastStoryboard.length-1].end;
+  const tick=now=>{
+    const t=(now-t0)/1000;
+    if(t>=total){vgRecorder.stop();return;}
+    const shot=lastStoryboard.find(s=>t>=s.start&&t<s.end)||lastStoryboard[lastStoryboard.length-1];
+    drawShot(ctx,shot,(t-shot.start)/(shot.end-shot.start));
+    vgTimer=requestAnimationFrame(tick);
+  };
+  vgTimer=requestAnimationFrame(tick);
+}
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 </script>
+
+<style>
+.sbtable{width:100%;border-collapse:collapse;font-size:12.5px;margin:12px 0}
+.sbtable th,.sbtable td{border:1px solid rgba(46,74,101,.25);padding:7px 9px;text-align:left;vertical-align:top}
+.sbtable th{background:var(--sky-hover);color:var(--text2);white-space:nowrap}
+.sb-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.sb-video-btn{background:linear-gradient(135deg,#b8780f,#d4a42e,#e8c05a,#c8921e)!important;color:#fff!important;border:none!important}
+.vg-modal{display:none;position:fixed;inset:0;background:rgba(6,13,28,.85);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px}
+.vg-modal.show{display:flex}
+.vg-modal canvas{height:70vh;max-width:90vw;border-radius:12px;border:1px solid rgba(232,184,75,.4);box-shadow:0 0 40px rgba(232,184,75,.15)}
+.vg-btns{display:flex;gap:12px}
+.vg-btns button{padding:11px 22px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600}
+#vgRecBtn{background:linear-gradient(135deg,#b8780f,#e8c05a,#c8921e);color:#fff}
+#vgCloseBtn{background:rgba(255,255,255,.12);color:#dde}
+.vg-note{color:#9ab;font-size:12px;text-align:center;max-width:480px}
+</style>
+
+<div class="vg-modal" id="vgModal">
+  <canvas id="vgCanvas" width="1080" height="1920"></canvas>
+  <div class="vg-btns">
+    <button id="vgRecBtn" onclick="recordVideo()">⏺ 開始錄製並下載</button>
+    <button id="vgCloseBtn" onclick="closeVideoGen()">關閉</button>
+  </div>
+  <div class="vg-note">錄製會依分鏡時間軸即時演算（約影片實際長度）。下載後可匯入剪映 / CapCut 加上 BGM、口播配音與實拍素材。</div>
+</div>
 </body>
 </html>

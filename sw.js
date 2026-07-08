@@ -1,4 +1,4 @@
-const CACHE = 'video-gen-v3';
+const CACHE = 'video-gen-v4';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/her-aurora.html'];
 
 self.addEventListener('install', e => {
